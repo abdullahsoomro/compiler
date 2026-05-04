@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parsing in Compiler Construction</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1814;
+    --ink-2: #3d3930;
+    --ink-3: #6b6458;
+    --ink-4: #9e9488;
+    --paper: #f5f0e8;
+    --paper-2: #ede8dc;
+    --paper-3: #e3ddd0;
+    --rule: #c8bfad;
+    --accent: #8b2e12;
+    --accent-2: #b85c38;
+    --accent-light: #f2e8e3;
+    --blue: #1a3a5c;
+    --blue-light: #e3eaf2;
+    --green: #1a3d28;
+    --green-light: #e3ede7;
+    --gold: #7a5c1e;
+    --gold-light: #f2ead8;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.75;
+    color: var(--ink);
+    background: var(--paper);
+    font-weight: 300;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 3px double var(--rule);
+    padding: 56px 0 40px;
+    text-align: center;
+    background: var(--paper);
+    position: relative;
+  }
+  header::before {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: var(--accent);
+    margin: 0 auto 28px;
+  }
+  .header-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--ink);
+    margin-bottom: 14px;
+    letter-spacing: -0.01em;
+  }
+  .subtitle {
+    font-style: italic;
+    color: var(--ink-3);
+    font-size: 16px;
+    margin-bottom: 28px;
+  }
+  .meta-row {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    flex-wrap: wrap;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-4);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── LAYOUT ── */
+  .page-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--rule);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-inner::-webkit-scrollbar { display: none; }
+  nav a {
+    display: block;
+    padding: 13px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-decoration: none;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  nav a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── SECTIONS ── */
+  .section {
+    padding: 60px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(22px, 3.5vw, 32px);
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 24px;
+    color: var(--ink);
+  }
+  h3 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 19px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--ink-2);
+    margin: 36px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--paper-3);
+  }
+  h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 24px 0 8px;
+  }
+  p { margin-bottom: 16px; color: var(--ink-2); }
+  strong { font-weight: 600; color: var(--ink); }
+  em { font-style: italic; }
+
+  /* ── CALLOUTS ── */
+  .callout {
+    border-left: 3px solid;
+    padding: 14px 20px;
+    margin: 20px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout p { margin-bottom: 0; font-size: 15px; }
+  .callout-note { border-color: var(--blue); background: var(--blue-light); }
+  .callout-note p { color: var(--blue); }
+  .callout-warn { border-color: var(--gold); background: var(--gold-light); }
+  .callout-warn p { color: var(--gold); }
+  .callout-danger { border-color: var(--accent); background: var(--accent-light); }
+  .callout-danger p { color: var(--accent); }
+  .callout-success { border-color: var(--green); background: var(--green-light); }
+  .callout-success p { color: var(--green); }
+  .callout-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  /* ── CODE / GRAMMAR ── */
+  pre, .grammar {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 2;
+    background: var(--ink);
+    color: #e8e2d6;
+    padding: 20px 24px;
+    border-radius: 4px;
+    margin: 16px 0;
+    overflow-x: auto;
+  }
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    background: var(--paper-3);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+  .grammar { background: #2a2420; }
+  .grammar .prod-num { color: #9e8870; margin-right: 8px; }
+  .grammar .lhs { color: #e8c87a; }
+  .grammar .arrow { color: #9e8870; }
+  .grammar .rhs-terminal { color: #a8d8a8; }
+  .grammar .rhs-nonterminal { color: #8ab4d8; }
+
+  /* ── TABLES ── */
+  .table-wrap { overflow-x: auto; margin: 20px 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 480px;
+  }
+  thead th {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: center;
+    border: 1px solid var(--ink);
+  }
+
+  
+
+  thead th.group-header {
+    background: #2a2420;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+  }
+  tbody td {
+    padding: 8px 14px;
+    border: 1px solid var(--rule);
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-2);
+    background: var(--paper);
+  }
+  .tdheader {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    /* text-transform: uppercase; */
+    padding: 10px 14px;
+    border: 1px solid var(--ink);
+  }
+  tbody tr:nth-child(even) td { background: var(--paper-2); }
+  tbody td.state-col { font-weight: 500; color: var(--ink); background: var(--paper-2) !important; }
+  .cell-shift { color: var(--blue); background: var(--blue-light) !important; }
+  .cell-reduce { color: var(--green); background: var(--green-light) !important; }
+  .cell-accept { color: var(--gold); background: var(--gold-light) !important; font-weight: 500; }
+  .cell-goto { color: var(--gold); }
+  .cell-conflict { color: var(--accent); background: var(--accent-light) !important; font-weight: 600; }
+
+  /* ── STATE CARDS ── */
+  .state-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin: 20px 0; }
+  .state-card {
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--paper);
+  }
+  .state-card-header {
+    background: var(--ink-2);
+    color: var(--paper);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    padding: 8px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .state-card-header .state-badge {
+    font-size: 10px;
+    background: rgba(255,255,255,0.15);
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.05em;
+  }
+  .state-card-body {
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 2;
+  }
+  .item-line { display: flex; gap: 6px; align-items: baseline; }
+  .item-dot { color: var(--accent); font-weight: 600; }
+  .item-note { font-size: 10px; color: var(--ink-4); margin-left: 4px; }
+  .goto-tags { padding: 8px 14px; border-top: 1px solid var(--paper-3); display: flex; flex-wrap: wrap; gap: 6px; }
+  .goto-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    background: var(--blue-light);
+    color: var(--blue);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid #b8cce0;
+  }
+  .conflict-badge {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid #d4a090;
+    display: inline-block;
+    margin-top: 6px;
+  }
+
+  /* ── TRACE TABLE ── */
+  .trace-table { font-family: 'JetBrains Mono', monospace; }
+  .trace-table thead th { text-align: left; }
+  .trace-table tbody td { text-align: left; font-size: 12px; }
+  .trace-table .action-col { color: var(--blue); }
+  .trace-action-accept { color: var(--green) !important; font-weight: 600; }
+
+  /* ── COMPARISON ── */
+  .cmp-table tbody td:first-child { text-align: left; font-weight: 500; color: var(--ink); }
+  .power-yes { color: var(--green); font-weight: 500; }
+  .power-no { color: var(--accent); font-weight: 500; }
+  .power-mid { color: var(--gold); font-weight: 500; }
+
+  /* ── SET DISPLAY ── */
+  .set-list { margin: 12px 0; }
+  .set-entry {
+    display: flex;
+    gap: 16px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--paper-3);
+    font-size: 15px;
+    align-items: baseline;
+  }
+  .set-entry:last-child { border-bottom: none; }
+  .set-name { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent); min-width: 130px; }
+  .set-value { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--ink-2); }
+  .set-reason { font-size: 13px; font-style: italic; color: var(--ink-4); }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 40px 24px;
+    border-top: 3px double var(--rule);
+    color: var(--ink-4);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+  footer::after {
+    content: '§';
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--rule);
+    margin-top: 20px;
+  }
+
+  /* ── DIVIDER ── */
+  .ornament { text-align: center; color: var(--rule); margin: 32px 0; font-family: 'Playfair Display', serif; font-size: 20px; letter-spacing: 0.5em; }
+
+  /* ── TOC ── */
+  .toc { background: var(--paper-2); border: 1px solid var(--rule); border-radius: 4px; padding: 24px 28px; margin: 32px 0; }
+  .toc-title { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 16px; }
+  .toc ol { margin-left: 20px; }
+  .toc li { margin-bottom: 8px; font-size: 15px; }
+  .toc a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); transition: color 0.15s, border-color 0.15s; }
+  .toc a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  @media (max-width: 600px) {
+    .state-grid { grid-template-columns: 1fr; }
+    header { padding: 36px 0 28px; }
+    .section { padding: 40px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="page-wrap">
+    <p class="header-label">Compiler Construction · Study Notes</p>
+    <h1>Parsing &amp; LR Grammars</h1>
+    <p class="subtitle">A complete reference on LR(0), SLR(1), CLR(1), and LALR(1) parsing</p>
+    <div class="meta-row">
+      <span>Grammar: S → Aa | bAc | dc | bda</span>
+      <span>·</span>
+      <span>A → d</span>
+      
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#basics">Basics</a>
+    <a href="#grammar">Grammar</a>
+    <a href="#lr0">LR(0) Items</a>
+    <a href="#slr">SLR(1)</a>
+    <a href="#clr">CLR(1)</a>
+    <a href="#lalr">LALR(1)</a>
+    <a href="#compare">Comparison</a>
+    <a href="#trace">Parse Trace</a>
+  </div>
+</nav>
+
+<main class="page-wrap">
+
+  <!-- TOC -->
+  <div class="toc" style="margin-top: 48px;">
+    <p class="toc-title">Table of Contents</p>
+    <ol>
+      <li><a href="#basics">What is Parsing? Top-Down vs Bottom-Up</a></li>
+      <li><a href="#grammar">The Grammar &amp; LR Parsing Concepts</a></li>
+      <li><a href="#lr0">LR(0) Item Construction — All States I₀–I₁₀</a></li>
+      <li><a href="#slr">SLR(1): FIRST/FOLLOW Sets &amp; Parsing Table</a></li>
+      <li><a href="#clr">CLR(1): LR(1) Items &amp; Conflict Resolution</a></li>
+      <li><a href="#lalr">LALR(1): State Merging</a></li>
+      <li><a href="#compare">Comparison of Parser Types</a></li>
+      <li><a href="#trace">Parsing Traces: "da", "bda", "dc"</a></li>
+    </ol>
+  </div>
+
+  <!-- ══════════════ SECTION 1 ══════════════ -->
+  <section class="section" id="basics">
+    <p class="section-label">§ 1 — Foundations</p>
+    <h2>What is Parsing?</h2>
+    <p>Parsing (syntactic analysis) is the second phase of a compiler. It receives a flat stream of tokens from the lexer and verifies that they form a grammatically valid sentence, producing a parse tree or abstract syntax tree (AST) as output.</p>
+    <div class="grammar">
+      <span style="color:#9e8870;">// Compiler pipeline</span>
+      Source Code → <span style="color:#a8d8a8;">Lexer</span> (tokens) → <span style="color:#8ab4d8;">Parser</span> (AST) → Semantic Analysis → Code Gen
+    </div>
+
+    <h3>Top-Down vs Bottom-Up</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Aspect</th><th>Top-Down</th><th>Bottom-Up</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="state-col">Direction</td><td>Root → leaves (S to tokens)</td><td>Leaves → root (tokens to S)</td></tr>
+          <tr><td class="state-col">Strategy</td><td>Predict & expand productions</td><td>Shift tokens, reduce by rules</td></tr>
+          <tr><td class="state-col">Parser types</td><td>LL(k), Recursive-Descent</td><td>LR(k), SLR, LALR, CLR</td></tr>
+          <tr><td class="state-col">Left recursion</td><td>Cannot handle (must eliminate)</td><td>Handles naturally</td></tr>
+          <tr><td class="state-col">Power</td><td>Less powerful</td><td>More powerful</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════ SECTION 2 ══════════════ -->
+  <section class="section" id="grammar">
+    <p class="section-label">§ 2 — The Grammar &amp; LR Concepts</p>
+    <h2>The Grammar Used Throughout</h2>
+    <div class="grammar">
+      <span class="prod-num">(0)</span><span class="lhs">S'</span> <span class="arrow">→</span> <span class="rhs-nonterminal">S</span><br>
+      <span class="prod-num">(1)</span><span class="lhs">S</span>  <span class="arrow">→</span> <span class="rhs-nonterminal">A</span><span class="rhs-terminal">a</span><br>
+      <span class="prod-num">(2)</span><span class="lhs">S</span>  <span class="arrow">→</span> <span class="rhs-terminal">b</span><span class="rhs-nonterminal">A</span><span class="rhs-terminal">c</span><br>
+      <span class="prod-num">(3)</span><span class="lhs">S</span>  <span class="arrow">→</span> <span class="rhs-terminal">dc</span><br>
+      <span class="prod-num">(4)</span><span class="lhs">S</span>  <span class="arrow">→</span> <span class="rhs-terminal">bda</span><br>
+      <span class="prod-num">(5)</span><span class="lhs">A</span>  <span class="arrow">→</span> <span class="rhs-terminal">d</span>
+    </div>
+    <p>S' is the <em>augmented start symbol</em> added to signal acceptance. Terminals: <code>a b c d $</code>. Non-terminals: <code>S' S A</code>.</p>
+
+    <h3>LR Parser Family</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Parser</th><th>Lookahead</th><th>Item Type</th><th>Power</th></tr></thead>
+        <tbody>
+          <tr><td class="state-col">LR(0)</td><td>None</td><td>LR(0) items</td><td>Weakest</td></tr>
+          <tr><td class="state-col">SLR(1)</td><td>FOLLOW sets (global)</td><td>LR(0) items</td><td>↑</td></tr>
+          <tr><td class="state-col">LALR(1)</td><td>Merged LR(1) lookaheads</td><td>LR(1) merged</td><td>↑↑</td></tr>
+          <tr><td class="state-col">CLR(1)</td><td>Exact per-item lookaheads</td><td>LR(1) items</td><td>Strongest</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Closure and GOTO</h3>
+    <p><strong>Closure(I):</strong> For any item with dot before a non-terminal B (i.e., A → α <strong>•</strong> B β), add all items B → <strong>•</strong> γ for every production B → γ. Repeat until stable.</p>
+    <p><strong>GOTO(I, X):</strong> Move the dot past symbol X in every eligible item of I, then take closure. Represents the next state after recognising X.</p>
+    <div class="callout callout-note">
+      <span class="callout-label">Key concept</span>
+      <p>An <strong>LR(0) item</strong> is a production with a dot (•) marking progress. An <strong>LR(1) item</strong> adds a lookahead token in brackets: <code>[A → α • β, a]</code> — reduce by A→α only when next input is <em>a</em>.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════ SECTION 3 ══════════════ -->
+  <section class="section" id="lr0">
+    <p class="section-label">§ 3 — LR(0) Construction</p>
+    <h2>LR(0) Item Sets — States I₀ through I₁₀</h2>
+
+    <div class="state-grid">
+
+      <div class="state-card">
+        <div class="state-card-header">I₀ — Initial State <span class="state-badge">START</span></div>
+        <div class="state-card-body">
+          <div class="item-line"><span class="item-dot">•</span> S' → <strong>•</strong> S</div>
+          <div class="item-line"><span class="item-dot">+</span> S  → <strong>•</strong> Aa</div>
+          <div class="item-line"><span class="item-dot">+</span> S  → <strong>•</strong> bAc</div>
+          <div class="item-line"><span class="item-dot">+</span> S  → <strong>•</strong> dc</div>
+          <div class="item-line"><span class="item-dot">+</span> S  → <strong>•</strong> bda</div>
+          <div class="item-line"><span class="item-dot">+</span> A  → <strong>•</strong> d <span class="item-note">(from S→•Aa)</span></div>
+        </div>
+        <div class="goto-tags">
+          <span class="goto-tag">S → I₁</span>
+          <span class="goto-tag">A → I₂</span>
+          <span class="goto-tag">b → I₃</span>
+          <span class="goto-tag">d → I₄</span>
+        </div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header">I₁ — GOTO(I₀, S) <span class="state-badge">ACCEPT</span></div>
+        <div class="state-card-body">
+          <div class="item-line"><span class="item-dot">•</span> S' → S <strong>•</strong></div>
+        </div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header">I₂ — GOTO(I₀, A)</div>
+        <div class="state-card-body">
+          <div class="item-line"><span class="item-dot">•</span> S → A <strong>•</strong> a</div>
+        </div>
+        <div class="goto-tags"><span class="goto-tag">a → I₅</span></div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header">I₃ — GOTO(I₀, b)</div>
+        <div class="state-card-body">
+          <div class="item-line"><span class="item-dot">•</span> S → b <strong>•</strong> Ac</div>
+          <div class="item-line"><span class="item-dot">•</span> S → b <strong>•</strong> da</div>
+          <div class="item-line"><span class="item-dot">+</span> A → <strong>•</strong> d <span class="item-note">(closure)</span></div>
+        </div>
+        <div class="goto-tags">
+          <span class="goto-tag">A → I₆</span>
+          <span class="goto-tag">d → I₇</span>
+        </div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header">I₄ — GOTO(I₀, d) <span class="state-badge" style="background:rgba(180,60,30,0.3);">CONFLICT</span></div>
+        <div class="state-card-body">
+          <div class="item-line"><span class="item-dot">•</span> S → d <strong>•</strong> c</div>
+          <div class="item-line"><span class="item-dot">•</span> A → d <strong>•</strong></div>
+          <div><span class="conflict-badge">S/R on 'c': shift I₈ vs reduce r5</span></div>
+        </div>
+        <div class="goto-tags"><span class="goto-tag">c → I₈</span></div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header">I₅ — GOTO(I₂, a)</div>
+        <div class="state-card-body">
+          <div class="item-line"><span class="item-dot">•</span> S → Aa <strong>•</strong> <span class="item-note">reduce r1</span></div>
+        </div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header">I₆ — GOTO(I₃, A)</div>
+        <div class="state-card-body">
+          <div class="item-line"><span class="item-dot">•</span> S → bA <strong>•</strong> c</div>
+        </div>
+        <div class="goto-tags"><span class="goto-tag">c → I₉</span></div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header">I₇ — GOTO(I₃, d)</div>
+        <div class="state-card-body">
+          <div class="item-line"><span class="item-dot">•</span> S → bd <strong>•</strong> a</div>
+          <div class="item-line"><span class="item-dot">•</span> A → d <strong>•</strong> <span class="item-note">reduce r5 (SLR: on 'c')</span></div>
+        </div>
+        <div class="goto-tags"><span class="goto-tag">a → I₁₀</span></div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header">I₈ — GOTO(I₄, c)</div>
+        <div class="state-card-body">
+          <div class="item-line"><span class="item-dot">•</span> S → dc <strong>•</strong> <span class="item-note">reduce r3</span></div>
+        </div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header">I₉ — GOTO(I₆, c)</div>
+        <div class="state-card-body">
+          <div class="item-line"><span class="item-dot">•</span> S → bAc <strong>•</strong> <span class="item-note">reduce r2</span></div>
+        </div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header">I₁₀ — GOTO(I₇, a)</div>
+        <div class="state-card-body">
+          <div class="item-line"><span class="item-dot">•</span> S → bda <strong>•</strong> <span class="item-note">reduce r4</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="callout callout-warn">
+      <span class="callout-label">LR(0) Result</span>
+      <p>State I₄ contains both <code>S → d • c</code> (wants to shift 'c') and <code>A → d •</code> (wants to reduce for <em>any</em> token). This is a <strong>Shift-Reduce conflict</strong> — LR(0) has no lookahead to resolve it. This grammar is <strong>not LR(0)</strong>.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════ SECTION 4 ══════════════ -->
+  <section class="section" id="slr">
+    <p class="section-label">§ 4 — SLR(1)</p>
+    <h2>SLR(1): FIRST &amp; FOLLOW Sets</h2>
+    <p>SLR uses the same 11 LR(0) states but reduces only when the next token is in FOLLOW(A) for the lhs A.</p>
+
+    <h3>FIRST Sets</h3>
+    <div class="set-list">
+      <div class="set-entry"><span class="set-name">FIRST(a)</span><span class="set-value">{ a }</span></div>
+      <div class="set-entry"><span class="set-name">FIRST(b)</span><span class="set-value">{ b }</span></div>
+      <div class="set-entry"><span class="set-name">FIRST(c)</span><span class="set-value">{ c }</span></div>
+      <div class="set-entry"><span class="set-name">FIRST(d)</span><span class="set-value">{ d }</span></div>
+      <div class="set-entry"><span class="set-name">FIRST(A)</span><span class="set-value">{ d }</span><span class="set-reason">A → d only</span></div>
+      <div class="set-entry"><span class="set-name">FIRST(S)</span><span class="set-value">{ d, b }</span><span class="set-reason">S→Aa: FIRST(A)={d}; S→bAc, S→bda: {b}; S→dc: {d}</span></div>
+      <div class="set-entry"><span class="set-name">FIRST(S')</span><span class="set-value">{ d, b }</span><span class="set-reason">= FIRST(S)</span></div>
+    </div>
+
+    <h3>FOLLOW Sets</h3>
+    <div class="set-list">
+      <div class="set-entry"><span class="set-name">FOLLOW(S')</span><span class="set-value">{ $ }</span></div>
+      <div class="set-entry"><span class="set-name">FOLLOW(S)</span><span class="set-value">{ $ }</span><span class="set-reason">S'→S, so FOLLOW(S) ⊇ FOLLOW(S')</span></div>
+      <div class="set-entry"><span class="set-name">FOLLOW(A)</span><span class="set-value">{ a, c }</span><span class="set-reason">S→Aa: 'a' follows A · S→bAc: 'c' follows A</span></div>
+    </div>
+
+    <h3>SLR(1) ACTION / GOTO Table</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">State</th>
+            <th colspan="5" class="group-header">ACTION</th>
+            <th colspan="2" class="group-header">GOTO</th>
+          </tr>
+          
+        </thead>
+        <tbody>
+          <tr><th class="tdheader"></th><th class="tdheader">a</th><th class="tdheader">b</th><th class="tdheader">c</th><th class="tdheader">d</th><th class="tdheader">$</th><th class="tdheader">S</th><th class="tdheader">A</th></tr>
+          <tr><td class="state-col">0</td><td></td><td class="cell-shift">s3</td><td></td><td class="cell-shift">s4</td><td></td><td class="cell-goto">1</td><td class="cell-goto">2</td></tr>
+          <tr><td class="state-col">1</td><td></td><td></td><td></td><td></td><td class="cell-accept">acc</td><td></td><td></td></tr>
+          <tr><td class="state-col">2</td><td class="cell-shift">s5</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="state-col">3</td><td></td><td></td><td></td><td class="cell-shift">s7</td><td></td><td></td><td class="cell-goto">6</td></tr>
+          <tr><td class="state-col">4</td><td class="cell-reduce">r5</td><td></td><td class="cell-conflict">s8 / r5</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="state-col">5</td><td></td><td></td><td></td><td></td><td class="cell-reduce">r1</td><td></td><td></td></tr>
+          <tr><td class="state-col">6</td><td></td><td></td><td class="cell-shift">s9</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="state-col">7</td><td class="cell-shift">s10</td><td></td><td class="cell-reduce">r5</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="state-col">8</td><td></td><td></td><td></td><td></td><td class="cell-reduce">r3</td><td></td><td></td></tr>
+          <tr><td class="state-col">9</td><td></td><td></td><td></td><td></td><td class="cell-reduce">r2</td><td></td><td></td></tr>
+          <tr><td class="state-col">10</td><td></td><td></td><td></td><td></td><td class="cell-reduce">r4</td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-danger">
+      <span class="callout-label">Conflict at (State 4, 'c')</span>
+      <p>In I₄: <code>S → d • c</code> wants to <strong>shift</strong> 'c'. <code>A → d •</code> wants to <strong>reduce</strong> (r5) for all tokens in FOLLOW(A) = {a, c}. Both apply to 'c' — a <strong>Shift-Reduce conflict</strong>. SLR uses FOLLOW globally and cannot distinguish that A here only feeds S→Aa (where only 'a' follows). <strong>This grammar is not SLR(1).</strong></p>
+    </div>
+  </section>
+
+  <!-- ══════════════ SECTION 5 ══════════════ -->
+  <section class="section" id="clr">
+    <p class="section-label">§ 5 — CLR(1)</p>
+    <h2>Canonical LR(1) Parsing</h2>
+    <p>CLR(1) items carry <em>exact per-derivation lookaheads</em>: <code>[A → α • β, a]</code>. Lookaheads are computed as FIRST(β · current_lookahead) — far more precise than global FOLLOW sets.</p>
+
+    <h3>LR(1) States — Key States</h3>
+    <div class="state-grid">
+
+      <div class="state-card">
+        <div class="state-card-header" style="background:#1a3a5c;">C₀ <span class="state-badge">START</span></div>
+        <div class="state-card-body">
+          <div class="item-line">[S' → <strong>•</strong> S, $]</div>
+          <div class="item-line">[S  → <strong>•</strong> Aa, $]</div>
+          <div class="item-line">[S  → <strong>•</strong> bAc, $]</div>
+          <div class="item-line">[S  → <strong>•</strong> dc, $]</div>
+          <div class="item-line">[S  → <strong>•</strong> bda, $]</div>
+          <div class="item-line">[A  → <strong>•</strong> d, <strong style="color:var(--accent)">a</strong>] <span class="item-note">FIRST(a·$)={a}</span></div>
+        </div>
+        <div class="goto-tags"><span class="goto-tag">S→C₁</span><span class="goto-tag">A→C₂</span><span class="goto-tag">b→C₃</span><span class="goto-tag">d→C₄</span></div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header" style="background:#1a3a5c;">C₃ — GOTO(C₀, b)</div>
+        <div class="state-card-body">
+          <div class="item-line">[S → b <strong>•</strong> Ac, $]</div>
+          <div class="item-line">[S → b <strong>•</strong> da, $]</div>
+          <div class="item-line">[A → <strong>•</strong> d, <strong style="color:var(--accent)">c</strong>] <span class="item-note">FIRST(c·$)={c}</span></div>
+        </div>
+        <div class="goto-tags"><span class="goto-tag">A→C₆</span><span class="goto-tag">d→C₇</span></div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header" style="background:#1a3a5c;">C₄ — GOTO(C₀, d) <span class="state-badge" style="background:rgba(180,230,180,0.3);">NO CONFLICT</span></div>
+        <div class="state-card-body">
+          <div class="item-line">[S → d <strong>•</strong> c, $]  → shift on 'c'</div>
+          <div class="item-line">[A → d <strong>•</strong>, <strong style="color:var(--accent)">a</strong>] → reduce on 'a' only</div>
+        </div>
+        <div class="goto-tags"><span class="goto-tag">c → C₈</span></div>
+      </div>
+
+      <div class="state-card">
+        <div class="state-card-header" style="background:#1a3a5c;">C₇ — GOTO(C₃, d)</div>
+        <div class="state-card-body">
+          <div class="item-line">[S → bd <strong>•</strong> a, $]  → shift on 'a'</div>
+          <div class="item-line">[A → d <strong>•</strong>, <strong style="color:var(--accent)">c</strong>] → reduce on 'c' only</div>
+        </div>
+        <div class="goto-tags"><span class="goto-tag">a → C₁₀</span></div>
+      </div>
+
+    </div>
+
+    <div class="callout callout-success">
+      <span class="callout-label">Why CLR(1) has no conflicts</span>
+      <p>In C₄: <code>A → d •</code> has lookahead <strong>{a}</strong> (A only feeds S→Aa from C₀). S→d•c shifts on <strong>'c'</strong>. Different tokens — zero conflict. In C₇: A→d• has lookahead <strong>{c}</strong> (A feeds S→bAc from C₃), S→bd•a shifts on <strong>'a'</strong>. Again, no overlap.</p>
+    </div>
+
+    <h3>CLR(1) Parsing Table</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">State</th>
+            <th colspan="5" class="group-header">ACTION</th>
+            <th colspan="2" class="group-header">GOTO</th>
+          </tr>
+          <!-- <tr><th>a</th><th>b</th><th>c</th><th>d</th><th>$</th><th>S</th><th>A</th></tr> -->
+        </thead>
+        <tbody>
+          <tr><th class="tdheader"> </th><th class="tdheader">a</th><th class="tdheader">b</th><th class="tdheader">c</th><th class="tdheader">d</th><th class="tdheader">$</th><th class="tdheader">S</th><th class="tdheader">A</th></tr>
+          <tr><td class="state-col">0</td><td></td><td class="cell-shift">s3</td><td></td><td class="cell-shift">s4</td><td></td><td class="cell-goto">1</td><td class="cell-goto">2</td></tr>
+          <tr><td class="state-col">1</td><td></td><td></td><td></td><td></td><td class="cell-accept">acc</td><td></td><td></td></tr>
+          <tr><td class="state-col">2</td><td class="cell-shift">s5</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="state-col">3</td><td></td><td></td><td></td><td class="cell-shift">s7</td><td></td><td></td><td class="cell-goto">6</td></tr>
+          <tr><td class="state-col">4</td><td class="cell-reduce">r5</td><td></td><td class="cell-shift">s8</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="state-col">5</td><td></td><td></td><td></td><td></td><td class="cell-reduce">r1</td><td></td><td></td></tr>
+          <tr><td class="state-col">6</td><td></td><td></td><td class="cell-shift">s9</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="state-col">7</td><td class="cell-shift">s10</td><td></td><td class="cell-reduce">r5</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="state-col">8</td><td></td><td></td><td></td><td></td><td class="cell-reduce">r3</td><td></td><td></td></tr>
+          <tr><td class="state-col">9</td><td></td><td></td><td></td><td></td><td class="cell-reduce">r2</td><td></td><td></td></tr>
+          <tr><td class="state-col">10</td><td></td><td></td><td></td><td></td><td class="cell-reduce">r4</td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════ SECTION 6 ══════════════ -->
+  <section class="section" id="lalr">
+    <p class="section-label">§ 6 — LALR(1)</p>
+    <h2>LALR(1): State Merging</h2>
+    <p>LALR(1) merges CLR(1) states that share the same <em>core</em> (identical dotted productions, ignoring lookaheads), then unions their lookaheads. This keeps the state count equal to LR(0)/SLR while retaining some lookahead precision.</p>
+
+    <div class="callout callout-note">
+      <span class="callout-label">This grammar</span>
+      <p>All CLR(1) states have <strong>unique cores</strong> — no two states share the same set of dotted productions. Therefore no merging occurs, and the LALR(1) table is <strong>identical to the CLR(1) table</strong>. This grammar is LALR(1).</p>
+    </div>
+
+    <h3>When Merging Causes Conflicts</h3>
+    <p>If two CLR(1) states share a core but have disjoint lookaheads, merging unions them. If the merged lookaheads now overlap with another reduce or shift action, a <strong>Reduce-Reduce conflict</strong> appears — one that didn't exist in CLR(1). This is the sole cost of LALR(1) over CLR(1).</p>
+
+    <div class="grammar">
+      <span style="color:#9e8870;">// Hypothetical: two CLR states with same core, different lookaheads</span><br>
+      State X:  [A → α •, a]     <span style="color:#9e8870;">// reduce A→α on 'a'</span><br>
+      State Y:  [A → α •, b]     <span style="color:#9e8870;">// reduce A→α on 'b'</span><br>
+      <br>
+      Merged XY: [A → α •, a/b]  <span style="color:#9e8870;">// fine unless...</span><br>
+      <span style="color:#e8a0a0;">If XY also has [B → β •, a] → Reduce-Reduce conflict on 'a'!</span>
+    </div>
+
+    <h3>Practical hierarchy reminder</h3>
+    <pre>LR(0) ⊂ SLR(1) ⊂ LALR(1) ⊂ CLR(1)
+
+yacc / bison implement LALR(1) — the industry standard.
+CLR(1) tables can be exponentially larger for some grammars.</pre>
+  </section>
+
+  <!-- ══════════════ SECTION 7 ══════════════ -->
+  <section class="section" id="compare">
+    <p class="section-label">§ 7 — Comparison</p>
+    <h2>Parser Type Comparison</h2>
+    <div class="table-wrap">
+      <table class="cmp-table">
+        <thead><tr><th>Feature</th><th>LR(0)</th><th>SLR(1)</th><th>LALR(1)</th><th>CLR(1)</th></tr></thead>
+        <tbody>
+          <tr><td>Lookahead</td><td>None</td><td>FOLLOW (global)</td><td>Merged LR(1)</td><td>Exact per-item</td></tr>
+          <tr><td>Item type</td><td>LR(0)</td><td>LR(0)</td><td>LR(1) merged</td><td>LR(1)</td></tr>
+          <tr><td>State count</td><td class="power-yes">Fewest</td><td class="power-yes">= LR(0)</td><td class="power-yes">= LR(0)</td><td class="power-no">Most</td></tr>
+          <tr><td>Parsing power</td><td class="power-no">Weakest</td><td class="power-mid">Moderate</td><td class="power-mid">Strong</td><td class="power-yes">Strongest</td></tr>
+          <tr><td>Conflict (this grammar)</td><td class="power-no">S/R in I₄</td><td class="power-no">S/R at (4,c)</td><td class="power-yes">None</td><td class="power-yes">None</td></tr>
+          <tr><td>Can add R/R on merge?</td><td>N/A</td><td>N/A</td><td class="power-no">Yes</td><td class="power-yes">No</td></tr>
+          <tr><td>Practical tool</td><td>Rare</td><td>Simple</td><td class="power-yes">yacc, bison</td><td>GLR parsers</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════ SECTION 8 ══════════════ -->
+  <section class="section" id="trace">
+    <p class="section-label">§ 8 — Parse Traces</p>
+    <h2>Parsing Traces using CLR(1)/LALR(1) Table</h2>
+
+    <h3>Trace 1 — Input: <code>d a $</code></h3>
+    <div class="table-wrap">
+      <table class="trace-table">
+        <thead><tr><th>#</th><th>Stack</th><th>Input</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>0</td><td>d a $</td><td class="action-col">ACTION[0,d] = s4 → Shift, push state 4</td></tr>
+          <tr><td>2</td><td>0 d 4</td><td>a $</td><td class="action-col">ACTION[4,a] = r5 → Reduce A→d; pop d 4; GOTO[0,A]=2</td></tr>
+          <tr><td>3</td><td>0 A 2</td><td>a $</td><td class="action-col">ACTION[2,a] = s5 → Shift, push state 5</td></tr>
+          <tr><td>4</td><td>0 A 2 a 5</td><td>$</td><td class="action-col">ACTION[5,$] = r1 → Reduce S→Aa; pop a 5 A 2; GOTO[0,S]=1</td></tr>
+          <tr><td>5</td><td>0 S 1</td><td>$</td><td class="trace-action-accept">ACTION[1,$] = acc → ACCEPT ✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Trace 2 — Input: <code>b d a $</code></h3>
+    <div class="table-wrap">
+      <table class="trace-table">
+        <thead><tr><th>#</th><th>Stack</th><th>Input</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>0</td><td>b d a $</td><td class="action-col">ACTION[0,b] = s3 → Shift, push state 3</td></tr>
+          <tr><td>2</td><td>0 b 3</td><td>d a $</td><td class="action-col">ACTION[3,d] = s7 → Shift, push state 7</td></tr>
+          <tr><td>3</td><td>0 b 3 d 7</td><td>a $</td><td class="action-col">ACTION[7,a] = s10 → Shift (not reduce — S→bd•a takes priority on 'a')</td></tr>
+          <tr><td>4</td><td>0 b 3 d 7 a 10</td><td>$</td><td class="action-col">ACTION[10,$] = r4 → Reduce S→bda; pop a 10 d 7 b 3; GOTO[0,S]=1</td></tr>
+          <tr><td>5</td><td>0 S 1</td><td>$</td><td class="trace-action-accept">ACTION[1,$] = acc → ACCEPT ✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Trace 3 — Input: <code>d c $</code></h3>
+    <div class="table-wrap">
+      <table class="trace-table">
+        <thead><tr><th>#</th><th>Stack</th><th>Input</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>0</td><td>d c $</td><td class="action-col">ACTION[0,d] = s4 → Shift, push state 4</td></tr>
+          <tr><td>2</td><td>0 d 4</td><td>c $</td><td class="action-col">ACTION[4,c] = s8 → Shift (CLR: A→d• has lookahead 'a' only, so no reduce conflict)</td></tr>
+          <tr><td>3</td><td>0 d 4 c 8</td><td>$</td><td class="action-col">ACTION[8,$] = r3 → Reduce S→dc; pop c 8 d 4; GOTO[0,S]=1</td></tr>
+          <tr><td>4</td><td>0 S 1</td><td>$</td><td class="trace-action-accept">ACTION[1,$] = acc → ACCEPT ✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Compiler Construction · Parsing Notes · LR(0) · SLR(1) · CLR(1) · LALR(1)
+</footer>
+
+</body>
+</html>
