@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLR(1) Dry Run Algorithm</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1814;
+  --ink-2: #3d3930;
+  --ink-3: #6b6458;
+  --ink-4: #9e9488;
+  --paper: #f5f0e8;
+  --paper-2: #ede8dc;
+  --paper-3: #e3ddd0;
+  --rule: #c8bfad;
+  --accent: #8b2e12;
+  --accent-2: #b85c38;
+  --accent-light: #f2e8e3;
+  --blue: #1a3a5c;
+  --blue-light: #e3eaf2;
+  --green: #1a3d28;
+  --green-light: #deeee6;
+  --gold: #7a5c1e;
+  --gold-light: #f2ead8;
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'Source Serif 4', Georgia, serif;
+  --display: 'Playfair Display', Georgia, serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink);
+  background: var(--paper);
+  font-weight: 300;
+}
+
+/* ─── HEADER ─── */
+header {
+  border-bottom: 3px double var(--rule);
+  padding: 48px 0 36px;
+  text-align: center;
+  background: var(--paper);
+}
+header::before {
+  content: '';
+  display: block;
+  width: 48px; height: 3px;
+  background: var(--accent);
+  margin: 0 auto 24px;
+}
+.lbl {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 12px;
+}
+h1 {
+  font-family: var(--display);
+  font-size: clamp(24px, 4vw, 40px);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.sub { font-style: italic; color: var(--ink-3); font-size: 15px; }
+
+/* ─── LAYOUT ─── */
+.wrap { max-width: 920px; margin: 0 auto; padding: 0 20px; }
+
+/* ─── SELECTOR ─── */
+.selector-bar {
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--rule);
+  padding: 18px 0;
+}
+.selector-inner {
+  max-width: 920px; margin: 0 auto; padding: 0 20px;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+}
+.selector-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.input-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all .15s;
+}
+.chip:hover { border-color: var(--accent-2); color: var(--accent); }
+.chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.run-btn {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 20px;
+  background: var(--accent);
+  color: var(--paper);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.run-btn:hover { background: var(--accent-2); }
+
+/* ─── MAIN GRID ─── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin-top: 0;
+}
+@media (max-width: 700px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
+
+/* ─── ALGORITHM PANEL ─── */
+.algo-panel {
+  border-right: 1px solid var(--rule);
+  padding: 36px 28px;
+}
+.panel-title {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--ink);
+}
+.algo-block {
+  margin-bottom: 20px;
+}
+.algo-step-hdr {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.algo-step-hdr::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--paper-3);
+}
+.algo-code {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 2;
+  background: var(--ink);
+  color: #d8d0c4;
+  padding: 14px 18px;
+  border-radius: 3px;
+  white-space: pre;
+  overflow-x: auto;
+}
+.algo-code .kw  { color: #c8a06a; }
+.algo-code .cm  { color: #6e665c; font-style: italic; }
+.algo-code .fn  { color: #a8d8a8; }
+.algo-code .vr  { color: #8ab4d8; }
+.algo-code .st  { color: #e8c87a; }
+.algo-code .op  { color: #c87a8a; }
+
+.algo-prose {
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.7;
+  margin-top: 8px;
+}
+
+/* ─── TRACE PANEL ─── */
+.trace-panel {
+  padding: 36px 28px;
+}
+
+/* ─── TABLES ─── */
+.tbl-wrap { overflow-x: auto; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11.5px; }
+th {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid #111;
+}
+td {
+  padding: 7px 10px;
+  border: 1px solid var(--rule);
+  vertical-align: top;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+tr:nth-child(even) td { background: var(--paper-2); }
+.td-num { text-align: center; color: var(--ink-3); font-size: 11px; }
+.td-stack { color: var(--blue); }
+.td-inp { color: var(--ink-2); }
+.td-action { color: var(--green); font-size: 11px; white-space: normal; }
+.td-action.shift { color: var(--blue); }
+.td-action.reduce { color: var(--green); }
+.td-action.accept { color: var(--accent); font-weight: 600; }
+.td-action.error { color: #a00; }
+
+/* Step highlight */
+.step-row { transition: background 0.3s; }
+.step-row.current td { background: #fff8e8 !important; border-top: 1.5px solid var(--gold); border-bottom: 1.5px solid var(--gold); }
+.step-row.done td { opacity: 0.55; }
+.step-row.active-done td { opacity: 1; }
+
+/* ─── STEP NAVIGATOR ─── */
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 14px;
+  flex-wrap: wrap;
+}
+.nav-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 7px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all .15s;
+}
+.nav-btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.step-counter {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-left: auto;
+}
+
+/* ─── EXPLAINER ─── */
+.explainer {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--gold);
+  border-radius: 0 3px 3px 0;
+  padding: 12px 16px;
+  margin: 14px 0;
+  min-height: 68px;
+}
+.explainer-lbl {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 5px;
+}
+.explainer-text { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
+
+/* ─── STACK VIZ ─── */
+.stack-viz-wrap { margin: 14px 0; }
+.stack-viz-lbl {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 8px;
+}
+.stack-viz {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  min-height: 42px;
+}
+.stack-cell {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--blue);
+  transition: all 0.25s;
+  animation: popIn 0.2s ease;
+}
+.stack-cell.state-cell { background: var(--blue-light); color: var(--blue); font-weight: 600; }
+.stack-cell.sym-cell { background: var(--paper-2); color: var(--ink); }
+@keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.input-viz {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  min-height: 42px;
+  margin-top: 8px;
+}
+.inp-cell {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink-2);
+}
+.inp-cell.current-tok {
+  background: var(--gold-light);
+  color: var(--gold);
+  border-color: var(--gold);
+  font-weight: 600;
+}
+.inp-cell.consumed { opacity: 0.3; text-decoration: line-through; }
+
+/* ─── PARSING TABLE REFERENCE ─── */
+.ref-section { border-top: 1px solid var(--rule); padding: 36px 0; }
+.ref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+@media (max-width: 600px) { .ref-grid { grid-template-columns: 1fr; } }
+
+.ref-table th { font-size: 9.5px; padding: 6px 8px; }
+.ref-table td { font-size: 11px; padding: 5px 8px; text-align: center; }
+.ref-table .cell-s { color: var(--blue); background: var(--blue-light); }
+.ref-table .cell-r { color: var(--green); background: var(--green-light); }
+.ref-table .cell-acc { color: var(--gold); background: var(--gold-light); font-weight: 600; }
+.ref-table .cell-g { color: var(--gold); }
+.ref-table .cell-st { background: var(--paper-2); font-weight: 500; color: var(--ink); }
+
+/* highlight active cell in ref table */
+.ref-table td.highlight-cell {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ─── PRODUCTIONS ─── */
+.prod-list {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 2.2;
+  background: var(--ink);
+  color: #d8d0c4;
+  padding: 14px 18px;
+  border-radius: 3px;
+  margin: 12px 0;
+}
+.prod-list .pn { color: #6e665c; }
+.prod-list .lhs { color: #e8c87a; }
+.prod-list .arr { color: #6e665c; }
+.prod-list .term { color: #a8d8a8; }
+.prod-list .nonterm { color: #8ab4d8; }
+
+/* ─── FOOTER ─── */
+footer {
+  text-align: center;
+  padding: 32px 20px;
+  border-top: 3px double var(--rule);
+  color: var(--ink-4);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.ornament { color: var(--rule); font-family: var(--display); font-size: 18px; letter-spacing: 0.5em; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="lbl">Compiler Construction · CLR(1) Parsing</p>
+    <h1>CLR(1) Dry Run Algorithm</h1>
+    <p class="sub">Step-by-step trace with visual stack &amp; input pointer</p>
+  </div>
+</header>
+
+<!-- INPUT SELECTOR -->
+<div class="selector-bar">
+  <div class="selector-inner">
+    <span class="selector-label">Select input string →</span>
+    <div class="input-chips">
+      <div class="chip active" data-input="da" onclick="selectInput('da',this)">d a</div>
+      <div class="chip" data-input="bda" onclick="selectInput('bda',this)">b d a</div>
+      <div class="chip" data-input="dc" onclick="selectInput('dc',this)">d c</div>
+      <div class="chip" data-input="bac" onclick="selectInput('bac',this)">b a c</div>
+    </div>
+    <button class="run-btn" onclick="startTrace()">▶ Run Trace</button>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+  <!-- LEFT: ALGORITHM -->
+  <div class="algo-panel">
+    <p class="panel-title">CLR(1) Algorithm</p>
+
+    <div class="algo-block">
+      <div class="algo-step-hdr">Initialise</div>
+      <div class="algo-code"><span class="cm">// Setup</span>
+<span class="vr">stack</span> = [<span class="st">0</span>]          <span class="cm">// push start state</span>
+<span class="vr">a</span>     = next_token()  <span class="cm">// read first token</span></div>
+      <div class="algo-prose">Push state 0 onto the stack. Read the first token from input into the lookahead register <em>a</em>.</div>
+    </div>
+
+    <div class="algo-block">
+      <div class="algo-step-hdr">Main Loop</div>
+      <div class="algo-code"><span class="kw">loop</span>:
+  <span class="vr">s</span> = top(<span class="vr">stack</span>)        <span class="cm">// peek state</span>
+  <span class="vr">act</span> = ACTION[<span class="vr">s</span>, <span class="vr">a</span>]
+
+  <span class="kw">if</span> <span class="vr">act</span> == <span class="fn">shift</span> <span class="vr">t</span>:
+    push(<span class="vr">a</span>, <span class="vr">t</span>)          <span class="cm">// push symbol + state</span>
+    <span class="vr">a</span> = next_token()
+
+  <span class="kw">elif</span> <span class="vr">act</span> == <span class="fn">reduce</span> <span class="vr">r</span>:
+    <span class="vr">β</span> = RHS(<span class="vr">r</span>)           <span class="cm">// production rhs</span>
+    pop |<span class="vr">β</span>| symbols
+    <span class="vr">A</span> = LHS(<span class="vr">r</span>)           <span class="cm">// production lhs</span>
+    <span class="vr">t</span> = top(<span class="vr">stack</span>)
+    push(<span class="vr">A</span>, GOTO[<span class="vr">t</span>, <span class="vr">A</span>])
+
+  <span class="kw">elif</span> <span class="vr">act</span> == <span class="fn">accept</span>:
+    <span class="op">return</span> <span class="st">SUCCESS</span>
+
+  <span class="kw">else</span>:
+    <span class="op">return</span> <span class="st">ERROR</span></div>
+    </div>
+
+    <div class="algo-block">
+      <div class="algo-step-hdr">Key Distinctions vs SLR</div>
+      <div class="algo-prose">
+        <strong>SLR</strong> reduces A→α when <em>a</em> ∈ FOLLOW(A) — globally.<br>
+        <strong>CLR(1)</strong> reduces only when <em>a</em> equals the item's exact lookahead, computed from the specific derivation path. This eliminates false conflicts.
+      </div>
+    </div>
+
+    <div class="algo-block">
+      <div class="algo-step-hdr">Productions Reference</div>
+      <div class="prod-list">
+<span class="pn">(0)</span> <span class="lhs">S'</span> <span class="arr">→</span> <span class="nonterm">S</span>
+<span class="pn">(1)</span> <span class="lhs">S</span>  <span class="arr">→</span> <span class="nonterm">A</span><span class="term">a</span>
+<span class="pn">(2)</span> <span class="lhs">S</span>  <span class="arr">→</span> <span class="term">b</span><span class="nonterm">A</span><span class="term">c</span>
+<span class="pn">(3)</span> <span class="lhs">S</span>  <span class="arr">→</span> <span class="term">dc</span>
+<span class="pn">(4)</span> <span class="lhs">S</span>  <span class="arr">→</span> <span class="term">bda</span>
+<span class="pn">(5)</span> <span class="lhs">A</span>  <span class="arr">→</span> <span class="term">d</span></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: TRACE -->
+  <div class="trace-panel">
+    <p class="panel-title">Step-by-Step Trace</p>
+
+    <div class="stack-viz-wrap">
+      <div class="stack-viz-lbl">Stack</div>
+      <div class="stack-viz" id="stackViz"></div>
+      <div class="stack-viz-lbl" style="margin-top:12px;">Remaining Input</div>
+      <div class="input-viz" id="inputViz"></div>
+    </div>
+
+    <div class="explainer">
+      <div class="explainer-lbl">Current Action</div>
+      <div class="explainer-text" id="explainerText">Select an input string and press ▶ Run Trace to begin.</div>
+    </div>
+
+    <div class="nav-controls">
+      <button class="nav-btn" id="btnPrev" onclick="prevStep()" disabled>← Prev</button>
+      <button class="nav-btn" id="btnNext" onclick="nextStep()" disabled>Next →</button>
+      <button class="nav-btn" id="btnAll" onclick="showAll()" disabled>Show All</button>
+      <span class="step-counter" id="stepCounter"></span>
+    </div>
+
+    <div class="tbl-wrap">
+      <table id="traceTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Stack</th>
+            <th>Input</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="traceTbody">
+          <tr><td colspan="4" style="text-align:center;color:var(--ink-4);font-family:var(--mono);font-size:12px;padding:24px;">Select input and run trace →</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- PARSING TABLE REFERENCE -->
+<div class="ref-section">
+  <div class="wrap">
+    <p class="lbl" style="margin-bottom:20px;">CLR(1) Parsing Table — Reference</p>
+    <div class="ref-grid">
+
+      <div>
+        <p style="font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">ACTION Table</p>
+        <div class="tbl-wrap">
+          <table class="ref-table" id="actionRef">
+            <thead>
+              <tr><th>St</th><th>a</th><th>b</th><th>c</th><th>d</th><th>$</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="cell-st">0</td><td></td><td class="cell-s" id="a-0-b">s3</td><td></td><td class="cell-s" id="a-0-d">s4</td><td></td></tr>
+              <tr><td class="cell-st">1</td><td></td><td></td><td></td><td></td><td class="cell-acc" id="a-1-$">acc</td></tr>
+              <tr><td class="cell-st">2</td><td class="cell-s" id="a-2-a">s5</td><td></td><td></td><td></td><td></td></tr>
+              <tr><td class="cell-st">3</td><td></td><td></td><td></td><td class="cell-s" id="a-3-d">s7</td><td></td></tr>
+              <tr><td class="cell-st">4</td><td class="cell-r" id="a-4-a">r5</td><td></td><td class="cell-s" id="a-4-c">s8</td><td></td><td></td></tr>
+              <tr><td class="cell-st">5</td><td></td><td></td><td></td><td></td><td class="cell-r" id="a-5-$">r1</td></tr>
+              <tr><td class="cell-st">6</td><td></td><td></td><td class="cell-s" id="a-6-c">s9</td><td></td><td></td></tr>
+              <tr><td class="cell-st">7</td><td class="cell-s" id="a-7-a">s10</td><td></td><td class="cell-r" id="a-7-c">r5</td><td></td><td></td></tr>
+              <tr><td class="cell-st">8</td><td></td><td></td><td></td><td></td><td class="cell-r" id="a-8-$">r3</td></tr>
+              <tr><td class="cell-st">9</td><td></td><td></td><td></td><td></td><td class="cell-r" id="a-9-$">r2</td></tr>
+              <tr><td class="cell-st">10</td><td></td><td></td><td></td><td></td><td class="cell-r" id="a-10-$">r4</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <p style="font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">GOTO Table</p>
+        <div class="tbl-wrap">
+          <table class="ref-table" id="gotoRef">
+            <thead>
+              <tr><th>St</th><th>S</th><th>A</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="cell-st">0</td><td class="cell-g" id="g-0-S">1</td><td class="cell-g" id="g-0-A">2</td></tr>
+              <tr><td class="cell-st">1</td><td></td><td></td></tr>
+              <tr><td class="cell-st">2</td><td></td><td></td></tr>
+              <tr><td class="cell-st">3</td><td></td><td class="cell-g" id="g-3-A">6</td></tr>
+              <tr><td class="cell-st">4</td><td></td><td></td></tr>
+              <tr><td class="cell-st">5</td><td></td><td></td></tr>
+              <tr><td class="cell-st">6</td><td></td><td></td></tr>
+              <tr><td class="cell-st">7</td><td></td><td></td></tr>
+              <tr><td class="cell-st">8</td><td></td><td></td></tr>
+              <tr><td class="cell-st">9</td><td></td><td></td></tr>
+              <tr><td class="cell-st">10</td><td></td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:20px;font-family:var(--mono);font-size:11px;line-height:2;color:var(--ink-3);">
+          <span style="color:var(--blue);">■</span> Shift &nbsp;
+          <span style="color:var(--green);">■</span> Reduce &nbsp;
+          <span style="color:var(--gold);">■</span> Accept / GOTO &nbsp;
+          <span style="color:var(--accent);font-weight:600;">□</span> Active cell
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer>
+  CLR(1) Dry Run · Compiler Construction Notes
+  <div class="ornament">§</div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════
+//  GRAMMAR & TABLES
+// ═══════════════════════════════════════════
+
+const productions = [
+  { lhs: "S'", rhs: ["S"],        len: 1 }, // 0
+  { lhs: "S",  rhs: ["A","a"],    len: 2 }, // 1
+  { lhs: "S",  rhs: ["b","A","c"],len: 3 }, // 2
+  { lhs: "S",  rhs: ["d","c"],    len: 2 }, // 3
+  { lhs: "S",  rhs: ["b","d","a"],len: 3 }, // 4
+  { lhs: "A",  rhs: ["d"],        len: 1 }, // 5
+];
+
+const prodDisplay = [
+  "S' → S", "S → Aa", "S → bAc", "S → dc", "S → bda", "A → d"
+];
+
+// ACTION[state][token] => {type: 'shift'|'reduce'|'accept'|'error', val}
+const ACTION = {
+  0: { b:{type:'shift',val:3},  d:{type:'shift',val:4} },
+  1: { '$':{type:'accept'} },
+  2: { a:{type:'shift',val:5} },
+  3: { d:{type:'shift',val:7} },
+  4: { a:{type:'reduce',val:5}, c:{type:'shift',val:8} },
+  5: { '$':{type:'reduce',val:1} },
+  6: { c:{type:'shift',val:9} },
+  7: { a:{type:'shift',val:10}, c:{type:'reduce',val:5} },
+  8: { '$':{type:'reduce',val:3} },
+  9: { '$':{type:'reduce',val:2} },
+  10:{ '$':{type:'reduce',val:4} },
+};
+
+const GOTO = {
+  0: { S:1, A:2 },
+  3: { A:6 },
+};
+
+// Cell IDs for highlighting
+const actionCellId = (state, tok) => `a-${state}-${tok}`;
+const gotoCellId   = (state, nt)  => `g-${state}-${nt}`;
+
+// ═══════════════════════════════════════════
+//  TRACE ENGINE
+// ═══════════════════════════════════════════
+
+const inputs = {
+  da:  ['d','a','$'],
+  bda: ['b','d','a','$'],
+  dc:  ['d','c','$'],
+  bac: ['b','a','c','$'],
+};
+
+let selectedInput = 'da';
+let traceSteps = [];
+let currentStep = -1;
+
+function selectInput(key, el) {
+  selectedInput = key;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function buildTrace(tokens) {
+  const steps = [];
+  let stack = [0];           // stack of (symbol|state) alternating: state sym state sym … state
+  let symStack = [];         // symbolic: just symbols for display
+  let stateStack = [0];      // parallel state stack for display
+  let pos = 0;
+
+  const snap = (action, explain, actionHighlight, gotoHighlight) => {
+    steps.push({
+      stackStates: [...stateStack],
+      stackSyms: [...symStack],
+      inputPos: pos,
+      tokens: [...tokens],
+      action,
+      explain,
+      actionHighlight,   // {state, tok}
+      gotoHighlight,     // {state, nt}
+    });
+  };
+
+  // step 0: initial
+  snap(
+    'initialise',
+    'Push state 0 onto stack. Read first token <strong>' + tokens[0] + '</strong> into lookahead register.',
+    null, null
+  );
+
+  for (let iter = 0; iter < 50; iter++) {
+    const s   = stateStack[stateStack.length - 1];
+    const tok = tokens[pos];
+    const act = (ACTION[s] && ACTION[s][tok]) ? ACTION[s][tok] : {type:'error'};
+
+    if (act.type === 'shift') {
+      const t = act.val;
+      snap(
+        `shift ${t}`,
+        `ACTION[${s}, ${tok}] = <strong>shift ${t}</strong>.<br>Push symbol <em>${tok}</em> and state <em>${t}</em>. Advance input.`,
+        {state: s, tok},
+        null
+      );
+      symStack.push(tok);
+      stateStack.push(t);
+      pos++;
+    } else if (act.type === 'reduce') {
+      const r    = act.val;
+      const prod = productions[r];
+      const len  = prod.len;
+      const lhs  = prod.lhs;
+      const rhsStr = prod.rhs.join(' ');
+
+      // do pop
+      for (let i = 0; i < len; i++) {
+        symStack.pop();
+        stateStack.pop();
+      }
+      const t2      = stateStack[stateStack.length - 1];
+      const gotoSt  = GOTO[t2] && GOTO[t2][lhs] !== undefined ? GOTO[t2][lhs] : '?';
+
+      symStack.push(lhs);
+      stateStack.push(gotoSt);
+
+      snap(
+        `reduce r${r}`,
+        `ACTION[${s}, ${tok}] = <strong>reduce by r${r}: ${prodDisplay[r]}</strong>.<br>` +
+        `Pop ${len} symbol${len>1?'s':''} (${rhsStr}). Expose state ${t2}. ` +
+        `GOTO[${t2}, ${lhs}] = <strong>${gotoSt}</strong>. Push ${lhs} and state ${gotoSt}.`,
+        {state: s, tok},
+        {state: t2, nt: lhs}
+      );
+    } else if (act.type === 'accept') {
+      snap(
+        'accept',
+        `ACTION[${s}, $] = <strong>accept</strong>. Input fully parsed. ✓`,
+        {state: s, tok: '$'},
+        null
+      );
+      break;
+    } else {
+      snap(
+        'error',
+        `No action for ACTION[${s}, ${tok}]. <strong>Parse error.</strong> This input is not in the language.`,
+        null, null
+      );
+      break;
+    }
+  }
+  return steps;
+}
+
+// ═══════════════════════════════════════════
+//  UI RENDERING
+// ═══════════════════════════════════════════
+
+function startTrace() {
+  const tokens = inputs[selectedInput];
+  traceSteps = buildTrace(tokens);
+  currentStep = 0;
+  renderAll();
+  renderStep(0);
+  document.getElementById('btnPrev').disabled = true;
+  document.getElementById('btnNext').disabled = traceSteps.length <= 1;
+  document.getElementById('btnAll').disabled = false;
+}
+
+function renderAll() {
+  const tbody = document.getElementById('traceTbody');
+  tbody.innerHTML = '';
+  traceSteps.forEach((step, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'step-row';
+    tr.id = `row-${i}`;
+    const stackStr = buildStackStr(step.stackStates, step.stackSyms);
+    const inputStr = step.tokens.slice(step.inputPos).join(' ');
+    const aClass   = step.action === 'accept' ? 'accept' :
+                     step.action.startsWith('shift') ? 'shift' :
+                     step.action.startsWith('reduce') ? 'reduce' :
+                     step.action === 'initialise' ? '' : 'error';
+
+    tr.innerHTML = `
+      <td class="td-num">${i}</td>
+      <td class="td-stack">${stackStr}</td>
+      <td class="td-inp">${inputStr || '$'}</td>
+      <td class="td-action ${aClass}">${step.action}</td>`;
+    tbody.appendChild(tr);
+  });
+  highlightRows();
+}
+
+function buildStackStr(states, syms) {
+  let out = states[0];
+  for (let i = 0; i < syms.length; i++) {
+    out += ' ' + syms[i] + ' ' + states[i+1];
+  }
+  return out;
+}
+
+function renderStep(idx) {
+  const step = traceSteps[idx];
+  if (!step) return;
+
+  // Explainer
+  document.getElementById('explainerText').innerHTML = step.explain;
+
+  // Stack viz
+  const sv = document.getElementById('stackViz');
+  sv.innerHTML = '';
+  const addCell = (text, cls) => {
+    const d = document.createElement('div');
+    d.className = `stack-cell ${cls}`;
+    d.textContent = text;
+    sv.appendChild(d);
+  };
+  addCell(step.stackStates[0], 'state-cell');
+  for (let i = 0; i < step.stackSyms.length; i++) {
+    addCell(step.stackSyms[i], 'sym-cell');
+    addCell(step.stackStates[i+1], 'state-cell');
+  }
+
+  // Input viz
+  const iv = document.getElementById('inputViz');
+  iv.innerHTML = '';
+  step.tokens.forEach((tok, ti) => {
+    const d = document.createElement('div');
+    d.className = 'inp-cell' +
+      (ti < step.inputPos ? ' consumed' : '') +
+      (ti === step.inputPos ? ' current-tok' : '');
+    d.textContent = tok;
+    iv.appendChild(d);
+  });
+
+  // Counter
+  document.getElementById('stepCounter').textContent =
+    `Step ${idx + 1} of ${traceSteps.length}`;
+
+  // Highlight table rows
+  highlightRows();
+
+  // Highlight ref table cells
+  clearRefHighlights();
+  if (step.actionHighlight) {
+    const {state, tok} = step.actionHighlight;
+    const el = document.getElementById(actionCellId(state, tok));
+    if (el) el.classList.add('highlight-cell');
+  }
+  if (step.gotoHighlight) {
+    const {state, nt} = step.gotoHighlight;
+    const el = document.getElementById(gotoCellId(state, nt));
+    if (el) el.classList.add('highlight-cell');
+  }
+}
+
+function clearRefHighlights() {
+  document.querySelectorAll('.highlight-cell').forEach(el => el.classList.remove('highlight-cell'));
+}
+
+function highlightRows() {
+  traceSteps.forEach((_, i) => {
+    const tr = document.getElementById(`row-${i}`);
+    if (!tr) return;
+    tr.className = 'step-row ' +
+      (i === currentStep ? 'current' : i < currentStep ? 'active-done' : 'done');
+  });
+  // scroll current into view
+  const cur = document.getElementById(`row-${currentStep}`);
+  if (cur) cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function nextStep() {
+  if (currentStep < traceSteps.length - 1) {
+    currentStep++;
+    renderStep(currentStep);
+    document.getElementById('btnPrev').disabled = false;
+    document.getElementById('btnNext').disabled = currentStep >= traceSteps.length - 1;
+  }
+}
+
+function prevStep() {
+  if (currentStep > 0) {
+    currentStep--;
+    renderStep(currentStep);
+    document.getElementById('btnPrev').disabled = currentStep === 0;
+    document.getElementById('btnNext').disabled = false;
+  }
+}
+
+function showAll() {
+  currentStep = traceSteps.length - 1;
+  renderStep(currentStep);
+  document.getElementById('btnPrev').disabled = false;
+  document.getElementById('btnNext').disabled = true;
+  traceSteps.forEach((_, i) => {
+    const tr = document.getElementById(`row-${i}`);
+    if (tr) tr.className = 'step-row active-done';
+  });
+  clearRefHighlights();
+}
+</script>
+</body>
+</html>
